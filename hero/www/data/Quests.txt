@@ -1,0 +1,38 @@
+Text that appears outside of the <quest></quest> tags will not display anywhere and can be used for notes if required.
+
+// <quest id:Name of Quest|difficulty|catId>
+// OBJECTIVES separated by commas (leave this blank to not use objectives for a quest)
+// RESOLUTIONS separated by commas use | for line breaks (leave this blank if not using resolutions for a quest)
+// quest description
+// quest description
+// quest description
+// </quest>
+
+<quest 1:Out of Luck|G|1>
+Bring Forest Charm
+
+Poor collector's out of luck...
+He heard there's a magical charm
+from the Forest of Beginnings
+that can up one's luck.
+Go find it and bring it to him.
+</quest>
+
+
+<quest 2:Missing noob|G|1>
+Find the noob,Report back
+I guess his stuff's all yours.
+
+Find the noob in the Forest of
+Beginnings and get his ahh back
+to Starting Town.
+His name is "John."
+</quest>
+
+<quest 3:Deliver 5 Slime Jellies|G|1>
+
+Free Forest quest!
+Bring back 5 Slime Jellies to
+the guy standing by the quest
+board.
+</quest>
