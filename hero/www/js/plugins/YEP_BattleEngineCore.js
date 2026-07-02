@@ -2949,6 +2949,11 @@ Sprite_Battler.prototype.setupDamagePopup = function() {
         sprite.x = this.x + this.damageOffsetX();
         sprite.y = this.y + this.damageOffsetY();
         sprite.setup(this._battler);
+
+        if (sprite.children.length === 0) {
+          return;
+        }
+
         this.pushDamageSprite(sprite);
         BattleManager._spriteset.addChild(sprite);
         this._battler.clearResult();

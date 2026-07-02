@@ -1801,6 +1801,18 @@ Game_Battler.prototype.updateCTB = function() {
 
 Game_Battler.prototype.updateCTBStates = function() {
     if (BattleManager.timeBasedBuffs()) return;
+    var value = BattleManager.tickRate() / Yanfly.Param.BECTurnTime;
+
+    this._regenTickCounter = (this._regenTickCounter || 0) + value;
+
+    if (this._regenTickCounter >= 1) {
+        this._regenTickCounter -= 1;
+        this.clearResult();
+        this.regenerateAll();
+        this.removeStatesAuto(2);
+    }
+
+
     for (var i = 0; i < this._states.length; ++i) {
       var stateId = this._states[i];
       var state = $dataStates[stateId];

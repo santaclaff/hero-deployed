@@ -2599,9 +2599,15 @@ Sprite_Damage.prototype.createSpecial = function(index) {
 
 Sprite_Damage.prototype.createSpecialCustom = function(index) {
 	var info = _.customPops[index];
-	var bitmap = this.createChildBitmap(info, info.text.length);
+	var text = info.text;
+	var result = this._result;
+	try {
+		text = eval(info.text);
+	} catch (e) {}
+
+	var bitmap = this.createChildBitmap(info, text.length);
 	var sprite = this.createChildSprite(bitmap);
-	sprite.bitmap.drawText(info.text, 2, 0, bitmap.width, bitmap.height, 'left');
+	sprite.bitmap.drawText(String(text), 2, 0, bitmap.width, bitmap.height, 'left');
 	sprite.dy = 0;
 	sprite.x = eval(info.x);
 	sprite.y = eval(info.y);

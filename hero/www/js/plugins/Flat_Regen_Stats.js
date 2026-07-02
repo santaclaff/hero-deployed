@@ -148,15 +148,14 @@
     const hp = this.flatHpRegen();
     const mp = this.flatMpRegen();
 
-    if (hp !== 0) {
-  	this._result.hpDamage = -hp;
-  	this.gainHp(hp);
-}
+    this.clearResult();
 
-if (mp !== 0) {
-  this._result.mpDamage -= mp;
-  this.gainMp(mp);
-}
+    if (hp !== 0) this.gainHp(hp);
+    if (mp !== 0) this.gainMp(mp);
+
+    if (hp !== 0 || mp !== 0) {
+        this.startDamagePopup();
+    }
   };
 
 })();
