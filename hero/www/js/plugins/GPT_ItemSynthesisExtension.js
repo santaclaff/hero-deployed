@@ -210,3 +210,28 @@ Game_Party.prototype.gainItem = function(item, amount, includeEquip) {
 
     scene.startGabWindow(gabData);
 };
+
+//-----------------------------------------------------------------------------
+// Sort recipes by Rarity (Descending) then by ID
+//-----------------------------------------------------------------------------
+
+var _RNM_sortList = Scene_Synthesis.sortList;
+Scene_Synthesis.sortList = function(list) {
+    list.sort(function(a, b) {
+        // Get rarity (default to 0 if not set)
+        var rarityA = a.meta && a.meta.itemRarity ? Number(a.meta.itemRarity) : 0;
+        var rarityB = b.meta && b.meta.itemRarity ? Number(b.meta.itemRarity) : 0;
+
+        // Higher rarity first (S=7, A=6, B=5, etc.)
+        if (rarityA !== rarityB) {
+            return rarityB - rarityA;
+        }
+
+        // If same rarity, fallback to ID sorting (like the original)
+        if (a.id !== b.id) {
+            return a.id - b.id;
+        }
+        return 0;
+    });
+    return list;
+};

@@ -71,7 +71,7 @@ function computeEncounterData() {
     const expNeeded = getPartyExpToNextLevel();
     const ratio = expGain / expNeeded;
 
-    const highRatioReference = 0.5, highMultiplier = 1.5;
+    const highRatioReference = 0.5, highMultiplier = 2;
     const lowRatioReference = 0.1, lowMultiplier = 1;
 
     let multiplier = Math.min(0.3 + (highMultiplier - lowMultiplier)/(highRatioReference - lowRatioReference)*ratio, 1.5); // y = mx + b, don't go over 1.5

@@ -26,17 +26,14 @@ AutoSave._pending = false;
 AutoSave._reason = "";
 AutoSave._cooldown = 0;
 AutoSave._canAutosave = false;
+AutoSave._loadedSlot = null;
 
 AutoSave.log = function() {
     if (this.DEBUG) console.log.apply(console, arguments);
 };
 
 AutoSave.currentSlot = function() {
-    if (!DataManager._lastAccessedId) {
-        return null;
-    }
-
-    return DataManager._lastAccessedId;
+    return this._loadedSlot;
 };
 
 AutoSave.request = function(reason) {
@@ -118,14 +115,21 @@ const _DataManager_setupNewGame = DataManager.setupNewGame;
 
 DataManager.setupNewGame = function() {
     _DataManager_setupNewGame.call(this);
+
     AutoSave._canAutosave = false;
+    AutoSave._loadedSlot = null;
 };
 
 // Manual Save -> autosave enabled
 const _Scene_Save_onSaveSuccess = Scene_Save.prototype.onSaveSuccess;
 
 Scene_Save.prototype.onSaveSuccess = function() {
+    if (AutoSave._loadedSlot === null) {
+        AutoSave._loadedSlot = DataManager._lastAccessedId;
+    }
+
     AutoSave._canAutosave = true;
+
     _Scene_Save_onSaveSuccess.call(this);
 };
 
@@ -135,6 +139,17 @@ const _Scene_Load_onLoadSuccess = Scene_Load.prototype.onLoadSuccess;
 Scene_Load.prototype.onLoadSuccess = function() {
     AutoSave._canAutosave = true;
     _Scene_Load_onLoadSuccess.call(this);
+};
+
+const _DataManager_loadGame = DataManager.loadGame;
+DataManager.loadGame = function(savefileId) {
+    var result = _DataManager_loadGame.call(this, savefileId);
+
+    if (result) {
+        AutoSave._loadedSlot = savefileId;
+    }
+
+    return result;
 };
 
 ///////////////////////////////////////////////////////////////////////////

@@ -162,7 +162,7 @@ if (this._data.type === 'item' && this._data.data && this._data.data.meta.itemRa
   const rarity = Number(this._data.data.meta.itemRarity);
 
   switch(rarity) {
-    case 1: color = '#8c8c8c'; break; // F - dark grey
+    case 1: color = '#c17f80'; break; // F - dark grey
     case 2: color = '#aaffaa'; break; // E - light green
     case 3: color = '#64ff64'; break; // D - green
     case 4: color = '#64b4ff'; break; // C - blue
