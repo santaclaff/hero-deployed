@@ -451,6 +451,21 @@ Yanfly.Status.version = 1.04;
  * @parent ---XParam Names---
  * @desc The text name used for this attribute.
  * @default Experience Rate
+ * 
+ * @param fhpr Name
+ * @parent ---XParam Names---
+ * @desc The text name used for this attribute.
+ * @default Flat HP Regen
+ *
+ * @param fmpr Name
+ * @parent ---XParam Names---
+ * @desc The text name used for this attribute.
+ * @default Flat MP Regen
+ * 
+ * @param ret Name
+ * @parent ---XParam Names---
+ * @desc The text name used for this attribute.
+ * @default Retaliation Rate
  *
  * @help
  * ============================================================================
@@ -632,6 +647,14 @@ Yanfly.Param.StatusAttr_pdr = String(Yanfly.Parameters['pdr Name']);
 Yanfly.Param.StatusAttr_mdr = String(Yanfly.Parameters['mdr Name']);
 Yanfly.Param.StatusAttr_fdr = String(Yanfly.Parameters['fdr Name']);
 Yanfly.Param.StatusAttr_exr = String(Yanfly.Parameters['exr Name']);
+Yanfly.Param.StatusAttr_fhpr =
+    String(Yanfly.Parameters['fhpr Name']);
+
+Yanfly.Param.StatusAttr_fmpr =
+    String(Yanfly.Parameters['fmpr Name']);
+
+Yanfly.Param.StatusAttr_ret =
+    String(Yanfly.Parameters['ret Name']);
 
 //=============================================================================
 // Window_StatusCommand
@@ -1311,6 +1334,23 @@ Window_StatusInfo.prototype.drawAttributeData = function(attr, dx, dy, dw) {
       this.drawAttributeName(Yanfly.Param.StatusAttr_exr, dx, dy, dw);
       this.drawAttributeRate(actor.exr, dx, dy, dw);
       break;
+    case 'fhpr':
+        this.drawAttributeName(Yanfly.Param.StatusAttr_fhpr, dx, dy, dw);
+        var value = actor.totalHpRegen();
+        this.drawAttributeValue(value > 0 ? "+" + value : String(value), dx, dy, dw);
+        break;
+
+    case 'fmpr':
+        this.drawAttributeName(Yanfly.Param.StatusAttr_fmpr, dx, dy, dw);
+        var value = actor.totalMpRegen();
+        this.drawAttributeValue(value > 0 ? "+" + value : String(value), dx, dy, dw);
+        break;
+    
+    case 'ret':
+      this.drawAttributeName(Yanfly.Param.StatusAttr_ret, dx, dy, dw);
+      this.drawAttributeRate(actor.ret, dx, dy, dw);
+      break;
+    
     default:
       break;
     }

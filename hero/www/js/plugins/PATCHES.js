@@ -1,5 +1,5 @@
 /*:
- * @plugindesc Fixes missing _summons array for old saves.
+ * @plugindesc Patches a lot of pain points. Also crit damage is now x2.
  * @author You
  */
 
@@ -86,6 +86,155 @@ Patches.refreshInactiveActors = function() {
 
 })();
 
+//=============================================================================
+// HERO - Automatic Equipment Slot Migration
+//=============================================================================
+//
+// Repairs equipment when loading saves after equipment slots have been
+// added, removed, or reordered.
+//
+// No old slot layout needs to be known.
+//
+// Examples:
+//
+// OLD:
+//   Weapon, Weapon, Title, Armor, Accessory
+//
+// NEW:
+//   Weapon, Weapon, Prefix, Title, Armor, Accessory
+//
+// Or:
+//
+// OLD:
+//   Weapon, Title, Armor, Accessory, Accessory, Accessory
+//
+// NEW:
+//   Prefix, Weapon, Armor, Title, Accessory
+//
+// Equipped items are redistributed according to their actual etypeId.
+// Items for which no slot remains are returned to the party inventory.
+//
+//=============================================================================
+
+(function() {
+
+    var _DataManager_extractSaveContents =
+        DataManager.extractSaveContents;
+
+    DataManager.extractSaveContents = function(contents) {
+
+        // Load the save normally first.
+        _DataManager_extractSaveContents.call(this, contents);
+
+        // Then repair every instantiated actor.
+        for (var i = 1; i < $gameActors._data.length; i++) {
+
+            var actor = $gameActors._data[i];
+
+            if (!actor || !actor._equips) continue;
+
+            HERO_rebuildActorEquips(actor);
+        }
+    };
+
+
+    function HERO_rebuildActorEquips(actor) {
+
+        // -------------------------------------------------------------
+        // 1. Grab the equipment objects exactly as they currently exist
+        //    in the save.
+        // -------------------------------------------------------------
+
+        var oldEquips = actor._equips.slice();
+
+        var items = [];
+
+        for (var i = 0; i < oldEquips.length; i++) {
+
+            var gameItem = oldEquips[i];
+
+            if (!gameItem) continue;
+
+            var item = gameItem.object();
+
+            if (item) {
+                items.push(item);
+            }
+        }
+
+
+        // -------------------------------------------------------------
+        // 2. Get the CURRENT equipment layout from Equip Core.
+        // -------------------------------------------------------------
+
+        var slots = actor.equipSlots();
+
+
+        // -------------------------------------------------------------
+        // 3. Build an entirely fresh equipment array matching the
+        //    current slot layout.
+        // -------------------------------------------------------------
+
+        var newEquips = [];
+
+        for (var i = 0; i < slots.length; i++) {
+            newEquips[i] = new Game_Item();
+        }
+
+
+        // -------------------------------------------------------------
+        // 4. Redistribute every saved equipment item.
+        //
+        //    The item's etypeId determines where it belongs.
+        // -------------------------------------------------------------
+
+        for (var i = 0; i < items.length; i++) {
+
+            var item = items[i];
+            var placed = false;
+
+            for (var slotId = 0; slotId < slots.length; slotId++) {
+
+                // This slot isn't the right equipment type.
+                if (slots[slotId] !== item.etypeId) continue;
+
+                // Already occupied.
+                if (newEquips[slotId].object()) continue;
+
+                newEquips[slotId].setObject(item);
+                placed = true;
+                break;
+            }
+
+
+            // ---------------------------------------------------------
+            // No compatible slot remains.
+            //
+            // Example:
+            //
+            // OLD: 3 Accessory slots
+            // NEW: 2 Accessory slots
+            //
+            // The third accessory goes back into inventory.
+            // ---------------------------------------------------------
+
+            if (!placed) {
+                $gameParty.gainItem(item, 1);
+            }
+        }
+
+
+        // -------------------------------------------------------------
+        // 5. Replace the malformed old equipment layout.
+        // -------------------------------------------------------------
+
+        actor._equips = newEquips;
+
+        actor.refresh();
+    }
+
+})();
+
 // Place this after all plugins
 var _Scene_Name_start = Scene_Name.prototype.start;
 Scene_Name.prototype.start = function() {
@@ -95,3 +244,115 @@ Scene_Name.prototype.start = function() {
         Input.resetAllKeystrokes();
     }
 };
+
+//=============================================================================
+// HERO_StopEventOnFatalBattleDefeat.js
+//=============================================================================
+
+var Imported = Imported || {};
+Imported.HERO_StopEventOnFatalBattleDefeat = true;
+
+(function() {
+
+    var _command301 = Game_Interpreter.prototype.command301;
+
+    Game_Interpreter.prototype.command301 = function() {
+
+        // Remember whether THIS Battle Processing allows losing.
+        var canLose = this._params[3];
+
+        var result = _command301.call(this);
+
+        if (BattleManager._eventCallback) {
+
+            var oldCallback = BattleManager._eventCallback;
+            var interpreter = this;
+
+            BattleManager._eventCallback = function(battleResult) {
+
+                oldCallback(battleResult);
+
+                // 2 = defeat.
+                //
+                // Only terminate the event when Can Lose was NOT checked.
+                // Can-Lose battles retain their normal event behavior.
+                if (battleResult === 2 && !canLose) {
+                    interpreter._index = interpreter._list.length;
+                }
+            };
+        }
+
+        return result;
+    };
+
+})();
+
+Game_Action.prototype.applyCritical = function(damage) {
+    return damage * 2;
+};
+
+/* ============================================================================
+ * HERO Patch - Battle AI EVA / MEV Conditions
+ * 
+ * Allows:
+ * EVA param < 20%
+ * MEV param < 20%
+ * ========================================================================== */
+
+(function() {
+
+    var _HERO_passAIConditions = AIManager.passAIConditions;
+
+    AIManager.passAIConditions = function(line) {
+
+        // EVA PARAM
+        if (line.match(/EVA[ ]PARAM[ ](.*)/i)) {
+            return this.HERO_conditionXParam(1, String(RegExp.$1));
+        }
+
+        // MEV PARAM
+        if (line.match(/MEV[ ]PARAM[ ](.*)/i)) {
+            return this.HERO_conditionXParam(4, String(RegExp.$1));
+        }
+
+        return _HERO_passAIConditions.call(this, line);
+    };
+
+
+    AIManager.HERO_conditionXParam = function(xparamId, condition) {
+
+        var group = this.getActionGroup();
+        var validTargets = [];
+
+        // Convert things like 20% into 0.20
+        condition = condition.replace(/(\d+)([%％])/g, function(match, number) {
+            return String(Number(number) * 0.01);
+        });
+
+        for (var i = 0; i < group.length; ++i) {
+
+            var target = group[i];
+            if (!target) continue;
+
+            var value = target.xparam(xparamId);
+
+            try {
+                if (eval("value " + condition)) {
+                    validTargets.push(target);
+                }
+            } catch (e) {
+                Yanfly.Util.displayError(
+                    e,
+                    condition,
+                    "HERO A.I. XPARAM ERROR"
+                );
+            }
+        }
+
+        if (validTargets.length <= 0) return false;
+
+        this.setProperTarget(validTargets);
+        return true;
+    };
+
+})();

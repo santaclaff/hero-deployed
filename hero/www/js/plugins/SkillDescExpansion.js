@@ -31,14 +31,23 @@ DataManager.isDatabaseLoaded = function(){
       let s = $dataSkills[i];
       if(!s) continue;
 
-      s.physicalPowerText = '';
-      s.magicalPowerText  = '';
+      s.physicalPowerText           = '';
+      s.physicalSpellbladePowerText = '';
+      s.spellbladePowerText         = '';
+      s.magicalSpellbladePowerText  = '';
+      s.magicalPowerText            = '';
 
-      let phys = s.note.match(/<Physical Power:\s*(.+)>/i);
-      let mag  = s.note.match(/<Magical Power:\s*(.+)>/i);
+      let phys      = s.note.match(/<Physical Power:\s*(.+)>/i);
+      let physSpell = s.note.match(/<Physical Spellblade Power:\s*(.+)>/i);
+      let spell     = s.note.match(/<Spellblade Power:\s*(.+)>/i);
+      let magSpell  = s.note.match(/<Magical Spellblade Power:\s*(.+)>/i);
+      let mag       = s.note.match(/<Magical Power:\s*(.+)>/i);
 
-      if(phys) s.physicalPowerText = phys[1];
-      if(mag)  s.magicalPowerText  = mag[1];
+      if(phys)      s.physicalPowerText           = phys[1];
+      if(physSpell) s.physicalSpellbladePowerText = physSpell[1];
+      if(spell)     s.spellbladePowerText         = spell[1];
+      if(magSpell)  s.magicalSpellbladePowerText  = magSpell[1];
+      if(mag)       s.magicalPowerText            = mag[1];
     }
 
     this._skillPowerLoaded = true;
@@ -86,14 +95,23 @@ Window_Help.prototype.setItem = function(item){
 
   let power = '';
 
-  const phys = item.physicalPowerText;
-  const mag  = item.magicalPowerText;
+  const phys      = item.physicalPowerText;
+  const physSpell = item.physicalSpellbladePowerText;
+  const spell     = item.spellbladePowerText;
+  const magSpell  = item.magicalSpellbladePowerText;
+  const mag       = item.magicalPowerText;
 
-  if(phys && mag){
-    power = `Total Power: ${phys} (Phys) + ${mag} (Mag)`;
-  }
-  else if(phys){
+  if(phys){
     power = `Physical Power: ${phys}`;
+  }
+  else if(physSpell){
+    power = `Physical Spellblade Power: ${physSpell}`;
+  }
+  else if(spell){
+    power = `Spellblade Power: ${spell}`;
+  }
+  else if(magSpell){
+    power = `Magical Spellblade Power: ${magSpell}`;
   }
   else if(mag){
     power = `Magical Power: ${mag}`;

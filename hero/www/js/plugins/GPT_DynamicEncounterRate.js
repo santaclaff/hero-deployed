@@ -2,6 +2,11 @@
  * @plugindesc Dynamic Encounter Rate (EXP Progress-Based + Weighted Pool + Debug)
  * @author You
  *
+ * @param Min Encounter Steps
+ * @type number
+ * @min 1
+ * @default 10
+ * 
  * @param Max Encounter Steps
  * @type number
  * @min 1
@@ -18,6 +23,7 @@
 (function() {
 
 const parameters = PluginManager.parameters(document.currentScript.src.match(/([^\/]+)\.js$/)[1]);
+const MIN_STEPS = Number(parameters["Min Encounter Steps"] || 10);
 const MAX_STEPS = Number(parameters["Max Encounter Steps"] || 150);
 const DEBUG = String(parameters["Enable Debug Logs"]) === "true";
 
@@ -74,11 +80,7 @@ function computeEncounterData() {
     const highRatioReference = 0.5, highMultiplier = 2;
     const lowRatioReference = 0.1, lowMultiplier = 1;
 
-    let multiplier = Math.min(0.3 + (highMultiplier - lowMultiplier)/(highRatioReference - lowRatioReference)*ratio, 1.5); // y = mx + b, don't go over 1.5
-    // if (ratio > 0.25) multiplier = 1.2;
-    // else if (ratio > 0.10) multiplier = 1.0;
-    // else if (ratio > 0.03) multiplier = 0.6;
-    // else multiplier = 0.3;
+    let multiplier = 0.3 + (highMultiplier - lowMultiplier)/(highRatioReference - lowRatioReference)*ratio; // y = mx + b
 
     return { expGain, expNeeded, ratio, multiplier };
 }
@@ -108,7 +110,7 @@ Game_Player.prototype.makeEncounterCount = function() {
     const mult = getMultiplier();
 
     this._encounterCount = Math.floor(this._encounterCount / mult);
-    this._encounterCount = Math.min(this._encounterCount, MAX_STEPS);
+    this._encounterCount = Math.max(Math.min(this._encounterCount, MAX_STEPS), MIN_STEPS);
 };
 
 // 🔥 Hook: map setup (entering map)

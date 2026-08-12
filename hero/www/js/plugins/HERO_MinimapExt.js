@@ -79,23 +79,80 @@ Game_Interpreter.prototype.pluginCommand = function(command, args)
 //--------------------------------------------------
 
 function getExploredMap() {
+
     if (!$gameSystem._mmExplored) {
         $gameSystem._mmExplored = {};
     }
 
     const mapId = $gameMap.mapId();
 
-    if (!$gameSystem._mmExplored[mapId]) {
-        const data = new Array($dataMap.width);
+    let data = $gameSystem._mmExplored[mapId];
+
+    // No exploration data yet.
+    if (!data) {
+
+        data = new Array($dataMap.width);
 
         for (let x = 0; x < $dataMap.width; x++) {
             data[x] = new Uint8Array($dataMap.height);
         }
 
         $gameSystem._mmExplored[mapId] = data;
+
+        return data;
     }
 
-    return $gameSystem._mmExplored[mapId];
+
+    //-------------------------------------------------------------------------
+    // Repair exploration data if the map dimensions have changed.
+    //-------------------------------------------------------------------------
+
+    const oldWidth = data.length;
+
+    let dimensionsChanged =
+        oldWidth !== $dataMap.width;
+
+    if (!dimensionsChanged) {
+
+        for (let x = 0; x < oldWidth; x++) {
+
+            if (!data[x] || data[x].length !== $dataMap.height) {
+                dimensionsChanged = true;
+                break;
+            }
+        }
+    }
+
+
+    if (dimensionsChanged) {
+
+        const newData = new Array($dataMap.width);
+
+        for (let x = 0; x < $dataMap.width; x++) {
+
+            newData[x] = new Uint8Array($dataMap.height);
+
+            // Preserve whatever exploration data still fits
+            // inside the resized map.
+            if (data[x]) {
+
+                const copyHeight = Math.min(
+                    data[x].length,
+                    $dataMap.height
+                );
+
+                for (let y = 0; y < copyHeight; y++) {
+                    newData[x][y] = data[x][y];
+                }
+            }
+        }
+
+        data = newData;
+        $gameSystem._mmExplored[mapId] = data;
+    }
+
+
+    return data;
 }
 
 //--------------------------------------------------
@@ -315,14 +372,14 @@ PLAYER_LOCATOR.prototype.refresh = function()
 {
     this.contents.clear();
 
-    this.x = _pminiMap_X;
-    this.y = _pminiMap_Y;
+    // this.x = _pminiMap_X;
+    // this.y = _pminiMap_Y;
+    
+    // this.width =
+    //     _pminiMap_Width * $dataMap.width + _miniBorderSize * 2;
 
-    this.width =
-        _pminiMap_Width * $dataMap.width + _miniBorderSize * 2;
-
-    this.height =
-        _pminiMap_Width * $dataMap.height + _miniBorderSize * 2;
+    // this.height =
+    //     _pminiMap_Width * $dataMap.height + _miniBorderSize * 2;
 
     const explored = getExploredMap();
 

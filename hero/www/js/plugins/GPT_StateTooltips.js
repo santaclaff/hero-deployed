@@ -348,11 +348,39 @@ StateHover.hit = function(mx, my, rect) {
            my <= rect.y + rect.height;
 };
 
+StateHover.hitWindowRect = function(mx, my, rect) {
+
+    var win = rect.window;
+
+    if (!win) return false;
+
+    // Convert the mouse's global canvas coordinates into coordinates
+    // local to the window.
+    var point = new PIXI.Point(mx, my);
+    var local = win.worldTransform.applyInverse(point);
+
+    // drawActorIcons() uses CONTENT coordinates.
+    //
+    // Window contents begin at padding,padding, and can also be shifted
+    // by the window origin.
+    var localX = local.x - win.padding + win.origin.x;
+    var localY = local.y - win.padding + win.origin.y;
+
+    return (
+        localX >= rect.x &&
+        localX <= rect.x + rect.width &&
+        localY >= rect.y &&
+        localY <= rect.y + rect.height
+    );
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // Actor and enemy registration
 ///////////////////////////////////////////////////////////////////////////////
 
 var _WB_drawActorIcons = Window_Base.prototype.drawActorIcons;
+var _WB_drawActorIcons = Window_Base.prototype.drawActorIcons;
+
 Window_Base.prototype.drawActorIcons = function(actor, x, y, width) {
 
     _WB_drawActorIcons.call(this, actor, x, y, width);
@@ -372,13 +400,25 @@ Window_Base.prototype.drawActorIcons = function(actor, x, y, width) {
         Math.floor(width / Window_Base._iconWidth)
     );
 
+    // Remove old registration for this actor/window.
+    for (var i = StateHover.actorRects.length - 1; i >= 0; i--) {
+        var oldRect = StateHover.actorRects[i];
+
+        if (oldRect.battler === actor && oldRect.window === this) {
+            StateHover.actorRects.splice(i, 1);
+        }
+    }
+
     if (iconCount <= 0) return;
 
+    // IMPORTANT:
+    // Store coordinates relative to the WINDOW CONTENTS.
+    // Don't try to convert them to screen coordinates here.
     StateHover.actorRects.push({
         battler: actor,
         window: this,
-        x: this.x + this.padding + x,
-        y: this.y + this.padding + y,
+        x: x,
+        y: y,
         width: iconCount * Window_Base._iconWidth,
         height: Window_Base._iconHeight
     });
@@ -404,7 +444,7 @@ Sprite_StateIcon.prototype.update = function() {
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// Other stuff idfk
+// Scene Tooltip Handling
 ///////////////////////////////////////////////////////////////////////////////
 
 (function(){
@@ -418,6 +458,7 @@ Scene_Battle.prototype.createAllWindows = function() {
     this.addChild(this._stateTooltip);
 };
 
+
 var _SceneMenu_create = Scene_Menu.prototype.create;
 Scene_Menu.prototype.create = function() {
     _SceneMenu_create.call(this);
@@ -426,65 +467,103 @@ Scene_Menu.prototype.create = function() {
     this.addChild(this._stateTooltip);
 };
 
-var _update = Scene_Battle.prototype.update;
-Scene_Battle.prototype.update = function() {
-    StateHover.enemyRects.length = 0;
-    StateHover.actorRects.length = 0;
 
-    _update.call(this);
+//=============================================================================
+// Battle Update
+//=============================================================================
+
+var _SceneBattle_update = Scene_Battle.prototype.update;
+Scene_Battle.prototype.update = function() {
+
+    // Enemy state icons are sprites and may move, so their rectangles
+    // are rebuilt naturally each frame by Sprite_StateIcon.update().
+    StateHover.enemyRects.length = 0;
+
+    // IMPORTANT:
+    // Do NOT clear actorRects here.
+    //
+    // Actor rectangles are registered whenever Window_BattleStatus
+    // actually redraws its state icons. Keeping them cached avoids
+    // forcing Window_BattleStatus.refresh() every frame.
+
+    _SceneBattle_update.call(this);
+
     this.updateStateTooltip();
-    if (!this._gptInitializedHover) {
-    this._gptInitializedHover = true;
-    this._statusWindow.refresh();
-}
 };
+
+
+//=============================================================================
+// Menu Update
+//=============================================================================
 
 var _SceneMenu_update = Scene_Menu.prototype.update;
 Scene_Menu.prototype.update = function() {
 
-    StateHover.actorRects.length = 0;
+    // Same principle as battle:
+    // actorRects remain cached until the status window redraws.
 
     _SceneMenu_update.call(this);
 
     this.updateStateTooltip();
 };
 
+
+//=============================================================================
+// Battle Tooltip
+//=============================================================================
+
 Scene_Battle.prototype.updateStateTooltip = function() {
+
     var tooltip = this._stateTooltip;
 
-    StateHover.battler = null;
+    if (!tooltip)
+        return;
 
-    if (this._statusWindow && StateHover.actorRects.length === 0)
-        this._statusWindow.refresh();
+    StateHover.battler = null;
 
     var mx = GPT_Mouse.x;
     var my = GPT_Mouse.y;
 
-    // ----------------------------------------------------------
-    // Actor hit test
-    // ----------------------------------------------------------
 
-    for (var i = 0; 
-        i < StateHover.actorRects.length
-        // loop only if the skill/item window are not visible
-        && !(this._skillWindow && this._skillWindow.visible) 
-        && !(this._itemWindow && this._itemWindow.visible);
-        i++) {
+    // -------------------------------------------------------------------------
+    // Actor hit test
+    // -------------------------------------------------------------------------
+
+    for (
+        var i = 0;
+
+        i < StateHover.actorRects.length &&
+        !(this._skillWindow && this._skillWindow.visible) &&
+        !(this._itemWindow && this._itemWindow.visible);
+
+        i++
+    ) {
 
         var rect = StateHover.actorRects[i];
-        if (!rect.window.visible) continue;
-        if (rect.window.openness <= 0) continue;
 
-        if (StateHover.hit(mx,my,rect)) {
-            if (!rect.battler.stateTooltipText()) continue;
+        if (!rect.window)
+            continue;
+
+        if (!rect.window.visible)
+            continue;
+
+        if (rect.window.openness <= 0)
+            continue;
+
+        if (StateHover.hitWindowRect(mx, my, rect)) {
+
+            if (!rect.battler.stateTooltipText())
+                continue;
+
             StateHover.battler = rect.battler;
             break;
         }
     }
 
-    // ----------------------------------------------------------
+
+    // -------------------------------------------------------------------------
     // Enemy hit test
-    // ----------------------------------------------------------
+    // -------------------------------------------------------------------------
 
     if (!StateHover.battler) {
 
@@ -492,24 +571,38 @@ Scene_Battle.prototype.updateStateTooltip = function() {
 
             var rect = StateHover.enemyRects[i];
 
-            if (StateHover.hit(mx,my,rect)) {
-                if (!rect.battler.stateTooltipText()) continue;
+            if (StateHover.hit(mx, my, rect)) {
+
+                if (!rect.battler.stateTooltipText())
+                    continue;
+
                 StateHover.battler = rect.battler;
                 break;
             }
         }
     }
 
-    // ----------------------------------------------------------
-    // Tooltip
-    // ----------------------------------------------------------
+
+    // -------------------------------------------------------------------------
+    // No tooltip
+    // -------------------------------------------------------------------------
 
     if (!StateHover.battler) {
         tooltip.visible = false;
         return;
     }
 
+
+    // -------------------------------------------------------------------------
+    // Update tooltip contents
+    // -------------------------------------------------------------------------
+
     tooltip.setBattler(StateHover.battler);
+
+
+    // -------------------------------------------------------------------------
+    // Follow mouse
+    // -------------------------------------------------------------------------
 
     tooltip.x = mx + 16;
     tooltip.y = my + 16;
@@ -519,6 +612,11 @@ Scene_Battle.prototype.updateStateTooltip = function() {
 
     if (tooltip.y + tooltip.bitmap.height > Graphics.boxHeight)
         tooltip.y = Graphics.boxHeight - tooltip.bitmap.height;
+
+
+    // -------------------------------------------------------------------------
+    // Keep tooltip above battle sprites/windows
+    // -------------------------------------------------------------------------
 
     tooltip.visible = true;
 
@@ -530,6 +628,11 @@ Scene_Battle.prototype.updateStateTooltip = function() {
     }
 };
 
+
+//=============================================================================
+// Menu Tooltip
+//=============================================================================
+
 Scene_Menu.prototype.updateStateTooltip = function() {
 
     var tooltip = this._stateTooltip;
@@ -537,21 +640,30 @@ Scene_Menu.prototype.updateStateTooltip = function() {
     if (!tooltip)
         return;
 
-    StateHover.actorRects.length = 0;
-
-    if (this._statusWindow)
-        this._statusWindow.refresh();
-
     var mx = GPT_Mouse.x;
     var my = GPT_Mouse.y;
 
     var battler = null;
 
+
+    // -------------------------------------------------------------------------
+    // Actor hit test
+    // -------------------------------------------------------------------------
+
     for (var i = 0; i < StateHover.actorRects.length; i++) {
 
         var rect = StateHover.actorRects[i];
 
-        if (StateHover.hit(mx,my,rect)) {
+        if (!rect.window)
+            continue;
+
+        if (!rect.window.visible)
+            continue;
+
+        if (rect.window.openness <= 0)
+            continue;
+
+        if (StateHover.hitWindowRect(mx, my, rect)) {
 
             if (!rect.battler.stateTooltipText())
                 continue;
@@ -561,10 +673,20 @@ Scene_Menu.prototype.updateStateTooltip = function() {
         }
     }
 
+
+    // -------------------------------------------------------------------------
+    // No tooltip
+    // -------------------------------------------------------------------------
+
     if (!battler) {
         tooltip.visible = false;
         return;
     }
+
+
+    // -------------------------------------------------------------------------
+    // Update tooltip
+    // -------------------------------------------------------------------------
 
     tooltip.setBattler(battler);
 
@@ -587,13 +709,24 @@ Scene_Menu.prototype.updateStateTooltip = function() {
     tooltip.visible = true;
 };
 
+
+//=============================================================================
+// Initial Battle Status Refresh
+//=============================================================================
+
 var _SceneBattle_start = Scene_Battle.prototype.start;
 Scene_Battle.prototype.start = function() {
+
+    StateHover.clear();
+
     _SceneBattle_start.call(this);
 
-    this._statusWindow.refresh();
+    // Refresh ONCE after battle startup so drawActorIcons()
+    // registers the hover rectangles.
+    if (this._statusWindow) {
+        this._statusWindow.refresh();
+    }
 };
 
 })();
-
 })();

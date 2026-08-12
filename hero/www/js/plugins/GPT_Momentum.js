@@ -69,8 +69,11 @@ Game_Battler.prototype.momentum = function() {
 };
 
 Game_Battler.prototype.momentumMultiplier = function() {
-	var m = this.momentum();
-	return 1 + 0.01 * m * (m + 1);
+    var m = this.momentum();
+
+    var agiScale = Math.max(0, (this.agi - 100) / 200);
+
+    return 1 + 0.01 * m * (m + 1) * (1 + agiScale);
 };
 
 Game_Battler.prototype.resetMomentum = function() {

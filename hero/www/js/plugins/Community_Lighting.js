@@ -2069,23 +2069,25 @@ class ColorDelta {
       $$.ReloadMapEvents();  // reload map events on map change
     }
 
-    // remove all old sprites
-    for (let i = 0, len = this._sprites.length; i < len; i++) this._removeSprite();
+    // Create sprites only once, then reuse them
+    if (this._sprites.length === 0) {
+        this._addSprite(-lightMaskPadding, 0, this._maskBitmaps.multiply, PIXI.BLEND_MODES.MULTIPLY);
+        this._addSprite(-lightMaskPadding, 0, this._maskBitmaps.additive, PIXI.BLEND_MODES.ADD);
+    }
 
     // No lighting on maps less than 1 || Plugin deactivated in options || Plugin deactivated by plugin command
     if (map_id <= 0 || !options_lighting_on || !$gameVariables.GetScriptActive()) return;
 
-    // reload map when a refresh is requested (event erase, page change, or _events object change) or game loaded
+    // reload map when a refresh is requested...
     if (ReloadMapEventsRequired || GameLoaded) {
       ReloadMapEventsRequired = false;
       $$.ReloadMapEvents();
     }
 
-    // If no lightsources on this map, no lighting if light_event_required set to true.
+    // If no lightsources on this map...
     if (light_event_required && eventObjId.length <= 0) return;
 
-    this._addSprite(-lightMaskPadding, 0, this._maskBitmaps.multiply, PIXI.BLEND_MODES.MULTIPLY);
-    this._addSprite(-lightMaskPadding, 0, this._maskBitmaps.additive, PIXI.BLEND_MODES.ADD);
+    // (the _addSprite calls are now inside the if check above, so remove these two lines)
 
     // ******** GROW OR SHRINK GLOBE PLAYER *********
     let firstrun = $gameVariables.GetFirstRun();

@@ -22,6 +22,7 @@ const params = PluginManager.parameters("SimpleAutosave");
 AutoSave.DEBUG = params["Debug"] === "true";
 AutoSave.COOLDOWN = Number(params["Cooldown"] || 30);
 
+AutoSave._enabled = true;
 AutoSave._pending = false;
 AutoSave._reason = "";
 AutoSave._cooldown = 0;
@@ -54,6 +55,11 @@ AutoSave.request = function(reason) {
 };
 
 AutoSave.save = function() {
+     if (!AutoSave._enabled) {
+        this.log("[AutoSave] Disabled.");
+        return;
+    }
+
     if (!$gameSystem.isSaveEnabled()) {
         this.log("[AutoSave] Save disabled.");
         return;
@@ -90,6 +96,37 @@ AutoSave.save = function() {
     }
 
     this.log("========================");
+};
+
+AutoSave.disable = function() {
+    this._enabled = false;
+};
+
+AutoSave.enable = function() {
+    this._enabled = true;
+};
+
+const _Game_Interpreter_pluginCommand =
+    Game_Interpreter.prototype.pluginCommand;
+
+Game_Interpreter.prototype.pluginCommand = function(command, args) {
+    _Game_Interpreter_pluginCommand.call(this, command, args);
+
+    if (command.toLowerCase() === "autosave") {
+        switch ((args[0] || "").toLowerCase()) {
+            case "enable":
+                AutoSave.enable();
+                break;
+
+            case "disable":
+                AutoSave.disable();
+                break;
+
+            case "force":
+                AutoSave.force();
+                break;
+        }
+    }
 };
 
 ///////////////////////////////////////////////////////////////////////////

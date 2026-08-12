@@ -327,11 +327,16 @@ BattleManager.performInstantCast = function() {
       this.stopAllSelection();
       this.resetSelection();
     }
+
     this._subject = BattleManager.actor();
+    this._subject._instantCastUsed = true;
+
     this._instantCasting = true;
+
     if (Imported.YEP_BattleEngineCore && BattleManager.isDTB()) {
       this._ignoreTurnOrderFirstIndex = true;
     }
+
     this.startAction();
 };
 
@@ -526,9 +531,12 @@ Game_Actor.prototype.endInstantCast = function() {
 
 Game_Actor.prototype.isInstantCast = function(item) {
     if (!item) return false;
+
     if ($gameParty.inBattle() && BattleManager._startedInstantCasting) {
       return BattleManager._instantCasting;
     }
+
+    if (this._instantCastUsed) return false;
     if (item.instantEval.length > 0) {
       var outcome = this.performInstantEval(item);
       if (outcome === true || outcome === false) return outcome;

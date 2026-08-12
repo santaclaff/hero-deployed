@@ -37,3 +37,18 @@ DF.magical = function(a, b, power, pen) {
 
     return (atk) / (atk + def * (1 - pen)) * Math.max(power * 0.5, power + 1.25 * statBonus);
 };
+
+DF.physicalSpellblade = function(a, b, power, pen) {
+    return DF.physical(a, b, power, pen) * 0.75
+         + DF.magical(a, b, power, pen) * 0.25;
+};
+
+DF.spellblade = function(a, b, power, pen) {
+    return DF.physical(a, b, power, pen) * 0.50
+         + DF.magical(a, b, power, pen) * 0.50;
+};
+
+DF.magicalSpellblade = function(a, b, power, pen) {
+    return DF.physical(a, b, power, pen) * 0.25
+         + DF.magical(a, b, power, pen) * 0.75;
+};

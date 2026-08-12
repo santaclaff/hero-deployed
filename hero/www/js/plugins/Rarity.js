@@ -25,8 +25,8 @@
 function rarityColorIndex(rarity) {
     switch(rarity) {
         case 1: return 25;   // F - brown
-        case 2: return 3;   // E - light green
-        case 3: return 24;  // D - green
+        case 2: return 24;   // E - light green
+        case 3: return 3;  // D - green
         case 4: return 1;   // C - blue
         case 5: return 30;  // B - purple
         case 6: return 20;  // A - orange

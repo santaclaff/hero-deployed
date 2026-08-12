@@ -1166,6 +1166,9 @@ BattleManager.updateTurnEnd = function() {
 
 BattleManager.startCTBInput = function(battler) {
     if (battler.isDead()) return;
+    if (battler.isActor()) {
+        battler._instantCastUsed = false;
+    }
     battler.onTurnStart();
     battler.makeActions();
     if (battler.isEnemy()) {

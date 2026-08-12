@@ -1,0 +1,23 @@
+/*:
+ * @plugindesc Clears the shop inventory variable when leaving a map.
+ * @author HERO
+ *
+ * @param Variable ID
+ * @type variable
+ * @default 40
+ */
+
+var Imported=Imported||{};
+Imported.HERO_ShopVariableReset=true;
+
+(function(){
+var p=PluginManager.parameters('HERO_ShopVariableReset');
+var v=Number(p['Variable ID']||40);
+
+var _Game_Player_performTransfer=Game_Player.prototype.performTransfer;
+Game_Player.prototype.performTransfer=function(){
+  var oldMap=this._newMapId;
+  _Game_Player_performTransfer.call(this);
+  if(oldMap!==this._mapId)$gameVariables.setValue(v,'');
+};
+})();

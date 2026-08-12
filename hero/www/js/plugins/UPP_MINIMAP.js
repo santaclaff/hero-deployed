@@ -1708,12 +1708,41 @@ PLAYER_LOCATOR.prototype.constructor = PLAYER_LOCATOR;
 PLAYER_LOCATOR.prototype.initialize = function() {
     var width = Graphics.boxWidth;
     var height = Graphics.boxHeight;
-    Window_Selectable.prototype.initialize.call(this, 0, 0, Graphics.boxWidth, Graphics.boxHeight);
-	if(_startMapHidden == "true") { this.hide(); }
-	this.opacity = 0;
+
+    Window_Selectable.prototype.initialize.call(
+        this,
+        0,
+        0,
+        Graphics.boxWidth,
+        Graphics.boxHeight
+    );
+
+    if (_startMapHidden == "true") {
+        this.hide();
+    }
+
+    this.opacity = 0;
+
+    // Set size ONCE.
+    this.x = _pminiMap_X;
+    this.y = _pminiMap_Y;
+
+    this.width =
+        _pminiMap_Width * $dataMap.width + _miniBorderSize * 2;
+
+    this.height =
+        _pminiMap_Width * $dataMap.height + _miniBorderSize * 2;
+
+    this.createContents();
+
+    this._lastPlayerX = -1;
+    this._lastPlayerY = -1;
+
     this.refresh();
+
     this.deactivate();
-	$miniMapPlayer = this;
+
+    $miniMapPlayer = this;
 };
 
 PLAYER_LOCATOR.prototype.standardPadding = function() {
@@ -1723,10 +1752,6 @@ PLAYER_LOCATOR.prototype.standardPadding = function() {
 PLAYER_LOCATOR.prototype.refresh = function()
 {
 	this.contents.clear();
-	this.x = _pminiMap_X;
-	this.y = _pminiMap_Y;
-	this.width = _pminiMap_Width*$dataMap.width+_miniBorderSize*2;
-	this.height = _pminiMap_Width*$dataMap.height+_miniBorderSize*2;
 	var RES_X = _pminiMap_X;
 	var RES_Y = _pminiMap_Y;
 	var RES_W = _pminiMap_Width;
@@ -1776,8 +1801,38 @@ PLAYER_LOCATOR.prototype.refresh = function()
 
 PLAYER_LOCATOR.prototype.update = function()
 {
-	this.refresh();
-}
+    Window_Selectable.prototype.update.call(this);
+
+    var needsRefresh = false;
+
+    if (
+        this._lastPlayerX !== $gamePlayer.x ||
+        this._lastPlayerY !== $gamePlayer.y
+    ) {
+        this._lastPlayerX = $gamePlayer.x;
+        this._lastPlayerY = $gamePlayer.y;
+        needsRefresh = true;
+    }
+
+    for (var i = 0; i < _minimapEvents.length; i++)
+    {
+        var ev = _minimapEvents[i];
+
+        if (
+            ev._mmLastX !== ev.x ||
+            ev._mmLastY !== ev.y
+        ) {
+            ev._mmLastX = ev.x;
+            ev._mmLastY = ev.y;
+            needsRefresh = true;
+        }
+    }
+
+    if (needsRefresh)
+    {
+        this.refresh();
+    }
+};
 
 function BORDER_WINDOW() {
     this.initialize.apply(this, arguments);

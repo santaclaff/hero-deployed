@@ -17,6 +17,7 @@
   const MAX_POPUPS = 5;
   const DURATION = 120;
   const DELAY = 30;
+  const KARMA_VAR = 31; // <-- your variable ID
 
   //=============================================================================
   // Game_Temp
@@ -32,6 +33,20 @@
   Game_Temp.prototype.queuePopup = function(data) {
     if (!$gameParty || $gameParty.inBattle()) return;
     this._itemPopupQueue.push(data);
+  };
+
+  window.Church = window.Church || {};
+
+  Church.changeKarma = function(amount) {
+      if (amount === 0) return;
+
+      const old = $gameVariables.value(KARMA_VAR);
+      $gameVariables.setValue(KARMA_VAR, old + amount);
+
+      $gameTemp.queuePopup({
+          type: 'karma',
+          amount: amount
+      });
   };
 
   //=============================================================================
@@ -143,6 +158,13 @@
       icon = 82;
     }
 
+    if (this._data.type === 'karma') {
+        text = (this._data.amount > 0 ? '+' : '') +
+              this._data.amount + ' Karma';
+
+        icon = 87; // whatever icon you like
+    }
+
     if (icon) {
       const set = ImageManager.loadSystem('IconSet');
       const s = 32;
@@ -158,17 +180,23 @@
 
 let color = '#ffffff';
 
+if (this._data.type === 'karma') {
+    color = this._data.amount >= 0
+        ? '#FFD700'
+        : '#ff7070';
+}
+
 if (this._data.type === 'item' && this._data.data && this._data.data.meta.itemRarity) {
   const rarity = Number(this._data.data.meta.itemRarity);
 
   switch(rarity) {
-    case 1: color = '#c17f80'; break; // F - dark grey
-    case 2: color = '#aaffaa'; break; // E - light green
-    case 3: color = '#64ff64'; break; // D - green
-    case 4: color = '#64b4ff'; break; // C - blue
-    case 5: color = '#b478ff'; break; // B - purple
-    case 6: color = '#ff8c00'; break; // A - orange
-    case 7: color = '#ffd700'; break; // S - gold
+    case 1: color = '#C08080'; break; // F - dark grey
+    case 2: color = '#80FF80'; break; // E - light green
+    case 3: color = '#66CC40'; break; // D - green
+    case 4: color = '#20A0D6'; break; // C - blue
+    case 5: color = '#A060E0'; break; // B - purple
+    case 6: color = '#E08040'; break; // A - orange
+    case 7: color = '#FFCC20'; break; // S - gold
   }
 }
 
