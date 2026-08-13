@@ -478,6 +478,9 @@ Input._switchButton = function(button) {
 
 ConfigManager.keyMapper = JSON.parse(JSON.stringify(Input.keyMapper));
 ConfigManager.defaultMap = JSON.parse(JSON.stringify(Input.keyMapper));
+ConfigManager.defaultMap[13] = 'ok';
+ConfigManager.defaultMap[32] = 'ok';
+
 ConfigManager.wasdMap = {
   9: 'tab', 13: 'ok', 16: 'shift', 17: 'control', 18: 'control', 27: 'escape',
   32: 'ok', 33: 'pageup', 34: 'pagedown', 37: 'left', 38: 'up', 39: 'right',

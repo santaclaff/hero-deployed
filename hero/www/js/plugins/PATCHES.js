@@ -356,3 +356,34 @@ Game_Action.prototype.applyCritical = function(damage) {
     };
 
 })();
+
+(function() {
+
+    var _Scene_Name_popScene = Scene_Name.prototype.popScene;
+
+    Scene_Name.prototype.popScene = function() {
+
+        if (typeof ConfigManager !== "undefined" &&
+            ConfigManager.defaultMap) {
+
+            ConfigManager.keyMapper =
+                JSON.parse(JSON.stringify(ConfigManager.defaultMap));
+
+            Input.keyMapper =
+                JSON.parse(JSON.stringify(ConfigManager.defaultMap));
+
+            Input.update();
+            Input.clear();
+
+        } else {
+
+            Input.keyMapper[13] = "ok";
+            Input.keyMapper[32] = "ok";
+            Input.resetAllKeystrokes();
+
+        }
+
+        _Scene_Name_popScene.call(this);
+    };
+
+})();

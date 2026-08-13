@@ -2037,7 +2037,10 @@ class ColorDelta {
 
   //Updates the Lightmask for each frame.
 
-  Lightmask.prototype.update = function () { this._updateMask(); };
+  Lightmask.prototype.update = function () {
+    if (Graphics.frameCount % 2 !== 0) return;
+    this._updateMask();
+};
 
   //@method _createBitmaps
   Lightmask.prototype._createBitmaps = function () {

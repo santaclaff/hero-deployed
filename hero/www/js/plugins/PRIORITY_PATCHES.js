@@ -3,12 +3,10 @@
 // Place this ABOVE SRD_NameInputUpgrade.js
 //=============================================================================
 
-(function() {
+//=============================================================================
+// DEBUG - Trace Enter Key Mapping
+//=============================================================================
 
-    // Completely override the background creation - do nothing
-    Scene_Name.prototype.createBackground = function() {
-        // Intentionally left blank - no background, no crash
-        // This prevents the plugin from even trying to load a background
-    };
-
-})();
+//=============================================================================
+// DEBUG - Trace Input.keyMapper replacement/modification
+//=============================================================================

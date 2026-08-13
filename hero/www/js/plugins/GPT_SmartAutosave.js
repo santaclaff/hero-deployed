@@ -323,8 +323,11 @@ const _endBattle =
 BattleManager.endBattle;
 
 BattleManager.endBattle = function(result) {
-    _endBattle.call(this,result);
-    if (ConfigManager.autosaveBattle) AutoSave.request("Battle");
+    _endBattle.call(this, result);
+
+    if (ConfigManager.autosaveBattle && result !== 2) {
+        AutoSave.request("Battle");
+    }
 };
 
 ///////////////////////////////////////////////////////////////////////////
