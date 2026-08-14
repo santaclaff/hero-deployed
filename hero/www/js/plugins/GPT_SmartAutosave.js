@@ -84,7 +84,7 @@ AutoSave.save = function() {
     this.log("Slot:", slot);
     this.log(AudioManager.saveBgm());
 
-    if (DataManager.saveGame(slot)) {
+    if (DataManager.saveGameWithoutRescue(slot)) {
         this.log("[AutoSave] Success");
 
         this._cooldown = this.COOLDOWN;

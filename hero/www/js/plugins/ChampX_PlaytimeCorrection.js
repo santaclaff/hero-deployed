@@ -49,24 +49,57 @@
     Game_System.prototype.initialize = function() 
     {
         _GameSystem_initialize.call(this);
-        this._playtime = null;
+        this._playtime = 0;
     };
     Game_System.prototype.onBeforeSave = function() 
     {
         _GameSystem_onBeforeSave.call(this);
-        var saveTime = Date.now() - startTime;
-        this._playtime = paused ? this._playtime + pausedTime : this._playtime + saveTime;
+
+        if (typeof this._playtime !== 'number' || !isFinite(this._playtime)) {
+            this._playtime = 0;
+        }
+
+        if (paused) {
+            this._playtime += pausedTime;
+        } else {
+            this._playtime += Date.now() - startTime;
+        }
+
         startTime = Date.now();
         pausedTime = 0;
     };
     Game_System.prototype.onAfterLoad = function() 
     {
         _GameSystem_onAfterLoad.call(this);
+
+        // Old saves don't have the real-time playtime accumulator.
+        if (typeof this._playtime !== 'number' || !isFinite(this._playtime)) {
+            this._playtime = this._framesOnSave
+                ? (this._framesOnSave / 60) * 1000
+                : 0;
+        }
+
         startTime = Date.now();
+        pausedTime = 0;
+        paused = false;
     };
     Game_System.prototype.playtime = function() 
     {
-        return Math.floor((paused ? (this._playtime + pausedTime) : (Date.now() - startTime + this._playtime)) / 1000);
+        var accumulated = this._playtime;
+
+        if (typeof accumulated !== 'number' || !isFinite(accumulated)) {
+            accumulated = 0;
+        }
+
+        if (paused) {
+            return Math.floor(
+                (accumulated + pausedTime) / 1000
+            );
+        }
+
+        return Math.floor(
+            (accumulated + Date.now() - startTime) / 1000
+        );
     };
 
 })();
