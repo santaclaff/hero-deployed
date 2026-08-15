@@ -130,6 +130,7 @@ var $plugins =
 {"name":"HIME_EffectConditions","status":true,"description":"v1.1 - Add conditions that must be met in order for your\nskills or item effects to execute!","parameters":{}},
 {"name":"--------------------","status":true,"description":"------------------------------------------------------------","parameters":{}},
 {"name":"HERO_ShopGenerator","status":true,"description":"v1.00 Generates persistent random shops through Common Event 39.","parameters":{"Shop Variable":"40","Gacha Common Event":"39","Minimum Items":"3","Maximum Items":"4","Minimum Price":"60"}},
+{"name":"HERO_SwimmingEffect","status":true,"description":"[HERO] Visual swimming/submersion effect for events.","parameters":{"Visual Offset":"12","Drowning Amplitude":"3","Drowning Speed":"0.08"}},
 {"name":"ChampX_PlaytimeCorrection","status":true,"description":"Counts total playtime accurately regardless of framerate","parameters":{}},
 {"name":"PATCHES","status":true,"description":"Fixes missing _summons array for old saves.","parameters":{}},
 {"name":"DEBUGGER","status":true,"description":"","parameters":{}}
