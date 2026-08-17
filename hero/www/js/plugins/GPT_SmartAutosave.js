@@ -100,10 +100,13 @@ AutoSave.save = function() {
 
 AutoSave.disable = function() {
     this._enabled = false;
+    this._pending = false;
+    this.log("[AutoSave] DISABLED");
 };
 
 AutoSave.enable = function() {
     this._enabled = true;
+    this.log("[AutoSave] ENABLED");
 };
 
 const _Game_Interpreter_pluginCommand =
@@ -120,6 +123,7 @@ Game_Interpreter.prototype.pluginCommand = function(command, args) {
 
             case "disable":
                 AutoSave.disable();
+                console.log("Hi!");
                 break;
 
             case "force":
