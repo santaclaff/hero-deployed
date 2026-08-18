@@ -107,42 +107,26 @@ function getExploredMap() {
     // Repair exploration data if the map dimensions have changed.
     //-------------------------------------------------------------------------
 
-    const oldWidth = data.length;
+    var validStructure =
+    data.length === $dataMap.width &&
+    data[0] instanceof Uint8Array &&
+    data[0].length === $dataMap.height;
 
-    let dimensionsChanged =
-        oldWidth !== $dataMap.width;
+    if (!validStructure) {
 
-    if (!dimensionsChanged) {
+        var newData = new Array($dataMap.width);
 
-        for (let x = 0; x < oldWidth; x++) {
-
-            if (!data[x] || data[x].length !== $dataMap.height) {
-                dimensionsChanged = true;
-                break;
-            }
-        }
-    }
-
-
-    if (dimensionsChanged) {
-
-        const newData = new Array($dataMap.width);
-
-        for (let x = 0; x < $dataMap.width; x++) {
+        for (var x = 0; x < $dataMap.width; x++) {
 
             newData[x] = new Uint8Array($dataMap.height);
 
-            // Preserve whatever exploration data still fits
-            // inside the resized map.
             if (data[x]) {
 
-                const copyHeight = Math.min(
-                    data[x].length,
-                    $dataMap.height
-                );
+                for (var y = 0; y < $dataMap.height; y++) {
 
-                for (let y = 0; y < copyHeight; y++) {
-                    newData[x][y] = data[x][y];
+                    if (data[x][y] !== undefined) {
+                        newData[x][y] = Number(data[x][y]);
+                    }
                 }
             }
         }
