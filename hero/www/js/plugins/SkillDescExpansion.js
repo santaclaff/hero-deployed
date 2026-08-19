@@ -105,13 +105,13 @@ Window_Help.prototype.setItem = function(item){
     power = `Physical Power: ${phys}`;
   }
   else if(physSpell){
-    power = `Physical Spellblade Power: ${physSpell}`;
+    power = `Phys. Spellblade Power: ${physSpell}`;
   }
   else if(spell){
     power = `Spellblade Power: ${spell}`;
   }
   else if(magSpell){
-    power = `Magical Spellblade Power: ${magSpell}`;
+    power = `Mag. Spellblade Power: ${magSpell}`;
   }
   else if(mag){
     power = `Magical Power: ${mag}`;
