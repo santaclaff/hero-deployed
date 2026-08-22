@@ -140,5 +140,6 @@ var $plugins =
 {"name":"HERO_SwimmingEffect","status":true,"description":"[HERO] Visual swimming/submersion effect for events.","parameters":{"Visual Offset":"12","Drowning Amplitude":"3","Drowning Speed":"0.08"}},
 {"name":"ChampX_PlaytimeCorrection","status":false,"description":"Counts total playtime accurately regardless of framerate.","parameters":{}},
 {"name":"PATCHES","status":true,"description":"Fixes missing _summons array for old saves.","parameters":{}},
-{"name":"DEBUGGER","status":true,"description":"","parameters":{}}
+{"name":"DEBUGGER","status":true,"description":"","parameters":{}},
+{"name":"HERO_BattleStallMonitor","status":true,"description":"v1.10 On-screen diagnostic and recovery for stalled battles.","parameters":{}}
 ];
