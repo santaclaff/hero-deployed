@@ -1,7 +1,7 @@
 [
 null,
 {"id":1,"expanded":true,"name":"Tutorial Dungeon","order":20,"parentId":0,"scrollX":595.6363636363636,"scrollY":325.8181818181818},
-{"id":2,"expanded":true,"name":"Starting Town","order":1,"parentId":0,"scrollX":1109,"scrollY":1480},
+{"id":2,"expanded":true,"name":"Starting Town","order":1,"parentId":0,"scrollX":1109,"scrollY":883},
 {"id":3,"expanded":true,"name":"Forest of New Beginnings","order":11,"parentId":0,"scrollX":1330.1818181818182,"scrollY":1422.5454545454545},
 {"id":4,"expanded":true,"name":"Left Wing ","order":12,"parentId":3,"scrollX":973.0909090909091,"scrollY":978.1818181818181},
 {"id":5,"expanded":false,"name":"Collector's Den","order":2,"parentId":2,"scrollX":1404,"scrollY":768},
