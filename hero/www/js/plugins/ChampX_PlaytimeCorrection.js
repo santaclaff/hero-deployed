@@ -1,255 +1,160 @@
 /*:
- * @plugindesc Counts total playtime accurately regardless of framerate.
+ * @plugindesc v2.0 Real-time playtime with safe migration for vanilla and older ChampX saves.
  * @author ChampX / HERO
  *
  * @help
  * ============================================================================
- * ChampX Playtime Correction
+ * Real-Time Playtime
  * ============================================================================
  *
- * Counts playtime using real elapsed time instead of RPG Maker MV's
- * frame-based playtime counter.
+ * Counts playtime from real elapsed time rather than rendered frames.
  *
- * Plugin Commands:
+ * Existing saves are migrated once, then retain their accumulated playtime:
  *
- *   ResetPlaytime
- *   - Resets the current playtime to 0.
+ *   - Legacy saves use vanilla MV's _framesOnSave when available.
+ *   - If that field is unavailable, older ChampX values are used as a fallback.
  *
- *   PausePlaytime
- *   - Pauses playtime accumulation.
+ * Plugin Commands
  *
- *   ResumePlaytime
- *   - Resumes playtime accumulation.
+ *   ResetPlaytime   Resets playtime to 0.
+ *   PausePlaytime   Stops playtime accumulation.
+ *   ResumePlaytime  Resumes playtime accumulation.
  *
- * ============================================================================
- * SAVE COMPATIBILITY
- * ============================================================================
- *
- * This version stores corrected playtime internally as MILLISECONDS.
- *
- * Saves created by older versions of the playtime system may contain
- * playtime in SECONDS. Those saves are automatically converted once when
- * loaded.
- *
- * New saves are marked so they will never be converted.
- *
- * ============================================================================
+ * Enable this plugin only once in the Plugin Manager. Do not run an older
+ * playtime-altering plugin alongside it.
  */
 
 (function() {
-
     'use strict';
 
-    //--------------------------------------------------------------------------
-    // Runtime variables
-    //--------------------------------------------------------------------------
-
-    var startTime = 0;
-    var pausedTime = 0;
+    var FORMAT_VERSION = 2;
+    var sessionStartedAt = 0;
     var paused = false;
 
-    //--------------------------------------------------------------------------
-    // Aliases
-    //--------------------------------------------------------------------------
+    var _DataManager_setupNewGame = DataManager.setupNewGame;
+    var _GameSystem_initialize = Game_System.prototype.initialize;
+    var _GameSystem_onBeforeSave = Game_System.prototype.onBeforeSave;
+    var _GameSystem_onAfterLoad = Game_System.prototype.onAfterLoad;
+    var _GameInterpreter_pluginCommand = Game_Interpreter.prototype.pluginCommand;
 
-    var _DataManager_setupNewGame =
-        DataManager.setupNewGame;
+    function now() {
+        return Date.now();
+    }
 
-    var _GameSystem_initialize =
-        Game_System.prototype.initialize;
+    function isFiniteNumber(value) {
+        return typeof value === 'number' && isFinite(value) && value >= 0;
+    }
 
-    var _GameSystem_onBeforeSave =
-        Game_System.prototype.onBeforeSave;
+    function ensurePlaytime(system) {
+        if (!isFiniteNumber(system._heroPlaytimeMs)) {
+            system._heroPlaytimeMs = 0;
+        }
+    }
 
-    var _GameSystem_onAfterLoad =
-        Game_System.prototype.onAfterLoad;
+    function syncPlaytime(system) {
+        ensurePlaytime(system);
+        if (!paused && sessionStartedAt > 0) {
+            system._heroPlaytimeMs += Math.max(0, now() - sessionStartedAt);
+        }
+        sessionStartedAt = now();
+    }
 
-    var _GameInterpreter_pluginCommand =
-        Game_Interpreter.prototype.pluginCommand;
+    function updateLegacyFrameCount(system) {
+        // Other MV plugins (including New Game+) may read this vanilla field.
+        // Keep it approximately in sync without using it as the source of truth.
+        system._framesOnSave = Math.floor(system._heroPlaytimeMs / 1000) * 60;
+        Graphics.frameCount = system._framesOnSave;
+    }
 
-
-    //--------------------------------------------------------------------------
-    // Plugin Commands
-    //--------------------------------------------------------------------------
-
-    Game_Interpreter.prototype.pluginCommand =
-        function(command, args)
-    {
-        _GameInterpreter_pluginCommand.call(this, command, args);
-
-        if (command === 'ResetPlaytime')
-        {
-            startTime = Date.now();
-            pausedTime = 0;
-            paused = false;
-
-            $gameSystem._playtime = 0;
-
-            // This save now definitely uses the corrected format.
-            $gameSystem._champXPlaytimeFormat = 1;
+    function migratePlaytime(system) {
+        if (system._heroPlaytimeFormat === FORMAT_VERSION &&
+                isFiniteNumber(system._heroPlaytimeMs)) {
+            return;
         }
 
-        if (command === 'PausePlaytime')
-        {
-            if (paused) return;
+        var milliseconds = 0;
 
-            paused = true;
-            pausedTime = Date.now() - startTime;
+        // Prefer MV's original value. The older plugin's _playtime field is
+        // precisely what could have been reset or inflated, whereas this
+        // field preserves the legacy save's displayed frame-based playtime.
+        if (isFiniteNumber(system._framesOnSave) && system._framesOnSave > 0) {
+            milliseconds = system._framesOnSave * 1000 / 60;
+
+        // The immediately previous version wrote milliseconds and marked it 1.
+        } else if (system._champXPlaytimeFormat === 1 &&
+                isFiniteNumber(system._playtime)) {
+            milliseconds = system._playtime;
+
+        // Older unmarked ChampX saves had no marker and stored seconds.
+        } else if (isFiniteNumber(system._playtime)) {
+            milliseconds = system._playtime * 1000;
         }
 
-        if (command === 'ResumePlaytime')
-        {
-            if (!paused) return;
+        system._heroPlaytimeMs = Math.floor(milliseconds);
+        system._heroPlaytimeFormat = FORMAT_VERSION;
+    }
 
-            paused = false;
-            startTime = Date.now() - pausedTime;
-        }
-    };
-
-
-    //--------------------------------------------------------------------------
-    // New Game
-    //--------------------------------------------------------------------------
-
-    DataManager.setupNewGame = function()
-    {
-        _DataManager_setupNewGame.call(this);
-
-        startTime = Date.now();
-        pausedTime = 0;
-        paused = false;
-
-        // New games use the corrected millisecond format.
-        $gameSystem._champXPlaytimeFormat = 1;
-    };
-
-
-    //--------------------------------------------------------------------------
-    // Game_System - Initialize
-    //--------------------------------------------------------------------------
-
-    Game_System.prototype.initialize = function()
-    {
+    Game_System.prototype.initialize = function() {
         _GameSystem_initialize.call(this);
-
-        // Internal corrected playtime is stored in milliseconds.
-        this._playtime = null;
-
-        // 1 = corrected millisecond format.
-        //
-        // This is intentionally NOT placed on old saves. Old saves won't
-        // have this property, allowing onAfterLoad() to recognize them.
-        this._champXPlaytimeFormat = 1;
+        this._heroPlaytimeMs = 0;
+        this._heroPlaytimeFormat = FORMAT_VERSION;
     };
 
-
-    //--------------------------------------------------------------------------
-    // Game_System - Before Save
-    //--------------------------------------------------------------------------
-
-    Game_System.prototype.onBeforeSave = function()
-    {
-        _GameSystem_onBeforeSave.call(this);
-
-        var saveTime = Date.now() - startTime;
-
-        if (this._playtime == null)
-        {
-            this._playtime = 0;
-        }
-
-        if (paused)
-        {
-            this._playtime += pausedTime;
-        }
-        else
-        {
-            this._playtime += saveTime;
-        }
-
-        // Mark this save as using the corrected format.
-        this._champXPlaytimeFormat = 1;
-
-        // Begin a fresh interval after saving.
-        startTime = Date.now();
-        pausedTime = 0;
-    };
-
-
-    //--------------------------------------------------------------------------
-    // Game_System - After Load
-    //--------------------------------------------------------------------------
-
-    Game_System.prototype.onAfterLoad = function()
-    {
-        _GameSystem_onAfterLoad.call(this);
-
-        //--------------------------------------------------------------------------
-        // Legacy save migration
-        //--------------------------------------------------------------------------
-        //
-        // Old saves from the previous system did not have our format marker.
-        //
-        // The old value is interpreted as seconds.
-        //
-        // Example:
-        //
-        //     22336 seconds
-        //
-        // becomes:
-        //
-        //     22336000 milliseconds
-        //
-        // After conversion the marker is saved, so this happens only once.
-        //--------------------------------------------------------------------------
-
-        if (this._champXPlaytimeFormat !== 1)
-        {
-            if (typeof this._playtime !== 'number')
-            {
-                this._playtime = 0;
-            }
-            else
-            {
-                this._playtime *= 1000;
-            }
-
-            this._champXPlaytimeFormat = 1;
-        }
-
-        // Start measuring real elapsed time from the moment the save
-        // finishes loading.
-        startTime = Date.now();
-        pausedTime = 0;
+    DataManager.setupNewGame = function() {
+        _DataManager_setupNewGame.call(this);
+        $gameSystem._heroPlaytimeMs = 0;
+        $gameSystem._heroPlaytimeFormat = FORMAT_VERSION;
+        sessionStartedAt = now();
         paused = false;
     };
 
-
-    //--------------------------------------------------------------------------
-    // Game_System - Playtime
-    //--------------------------------------------------------------------------
-
-    Game_System.prototype.playtime = function()
-    {
-        if (this._playtime == null)
-        {
-            this._playtime = 0;
-        }
-
-        var currentTime;
-
-        if (paused)
-        {
-            currentTime = this._playtime + pausedTime;
-        }
-        else
-        {
-            currentTime =
-                this._playtime +
-                (Date.now() - startTime);
-        }
-
-        return Math.floor(currentTime / 1000);
+    Game_System.prototype.onBeforeSave = function() {
+        syncPlaytime(this);
+        this._heroPlaytimeFormat = FORMAT_VERSION;
+        updateLegacyFrameCount(this);
+        _GameSystem_onBeforeSave.call(this);
+        // The aliased vanilla method records Graphics.frameCount. Keep the
+        // stored field synchronized with our real-time total instead.
+        updateLegacyFrameCount(this);
     };
 
+    Game_System.prototype.onAfterLoad = function() {
+        _GameSystem_onAfterLoad.call(this);
+        migratePlaytime(this);
+        updateLegacyFrameCount(this);
+        sessionStartedAt = now();
+        paused = false;
+    };
+
+    Game_System.prototype.playtime = function() {
+        ensurePlaytime(this);
+        var milliseconds = this._heroPlaytimeMs;
+        if (!paused && sessionStartedAt > 0) {
+            milliseconds += Math.max(0, now() - sessionStartedAt);
+        }
+        return Math.floor(milliseconds / 1000);
+    };
+
+    Game_Interpreter.prototype.pluginCommand = function(command, args) {
+        _GameInterpreter_pluginCommand.call(this, command, args);
+        if (!$gameSystem) return;
+
+        if (command === 'ResetPlaytime') {
+            $gameSystem._heroPlaytimeMs = 0;
+            $gameSystem._heroPlaytimeFormat = FORMAT_VERSION;
+            sessionStartedAt = now();
+            paused = false;
+            updateLegacyFrameCount($gameSystem);
+        } else if (command === 'PausePlaytime') {
+            if (!paused) {
+                syncPlaytime($gameSystem);
+                paused = true;
+            }
+        } else if (command === 'ResumePlaytime') {
+            if (paused) {
+                sessionStartedAt = now();
+                paused = false;
+            }
+        }
+    };
 })();
