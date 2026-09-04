@@ -147,7 +147,7 @@ if (ele) {
 // meaning it inherits weapon attack elements/states
 
 if (item.damage.elementId === -1) {
-  parts.push("Applies weapon effects");
+  parts.push("Applies equipment effects");
 }
 
 //-----------------------------------------------------------------------------

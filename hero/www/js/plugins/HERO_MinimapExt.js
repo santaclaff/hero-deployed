@@ -148,8 +148,12 @@ function revealAroundPlayer() {
 
     const explored = getExploredMap();
 
-    const px = $gamePlayer.x;
-    const py = $gamePlayer.y;
+    // Galv Pixel Move stores the player's current position in thirds of a
+    // tile (for example, 12.33). The explored-map grid is tile based, so
+    // fractional coordinates must resolve to the tile currently occupied.
+    // Without this, explored[12.33] is undefined and revealing fog crashes.
+    const px = Math.floor($gamePlayer.x);
+    const py = Math.floor($gamePlayer.y);
 
     let changed = false;
 
